@@ -145,8 +145,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }));
 
         const response = await anthropic.messages.create({
-            model: 'claude-opus-4-1-20250805',
-            max_tokens: 150,
+            model: 'claude-3-haiku-20240307',
+            max_tokens: 100,
             system: SYSTEM_PROMPT,
             messages: conversationHistory
         });
