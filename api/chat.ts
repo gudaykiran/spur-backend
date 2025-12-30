@@ -11,13 +11,19 @@ if (!process.env.CLAUDE_API_KEY) {
     console.error('FATAL: CLAUDE_API_KEY environment variable is not set');
 }
 
-// Build DATABASE_URL with prepared statements disabled for serverless
+// Build DATABASE_URL with connection pooling parameters for serverless
 function getPrismaClient() {
     const dbUrl = new URL(process.env.DATABASE_URL || '');
-    // Remove if already exists and set fresh
+
+    // Clear all pooling-related parameters and set them fresh
     dbUrl.searchParams.delete('prepared_statements');
+    dbUrl.searchParams.delete('statement_cache_size');
+    dbUrl.searchParams.delete('pgbouncer');
+
+    // Disable all prepared statement caching for PgBouncer compatibility
     dbUrl.searchParams.set('prepared_statements', 'false');
-    
+    dbUrl.searchParams.set('statement_cache_size', '0');
+
     return new PrismaClient({
         datasources: {
             db: {

@@ -19,10 +19,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-        // Build DATABASE_URL with prepared statements disabled
+        // Build DATABASE_URL with connection pooling parameters
         const dbUrl = new URL(process.env.DATABASE_URL || '');
+
+        // Clear and set fresh pooling parameters
         dbUrl.searchParams.delete('prepared_statements');
+        dbUrl.searchParams.delete('statement_cache_size');
+        dbUrl.searchParams.delete('pgbouncer');
+
         dbUrl.searchParams.set('prepared_statements', 'false');
+        dbUrl.searchParams.set('statement_cache_size', '0');
 
         const prisma = new PrismaClient({
             datasources: {
