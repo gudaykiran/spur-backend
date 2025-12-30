@@ -4,21 +4,29 @@ import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
 
 // Validate required environment variables
-const requiredEnvVars = ['DATABASE_URL', 'CLAUDE_API_KEY'];
-for (const envVar of requiredEnvVars) {
-    if (!process.env[envVar]) {
-        console.error(`Missing required environment variable: ${envVar}`);
-    }
+if (!process.env.DATABASE_URL) {
+    console.error('FATAL: DATABASE_URL environment variable is not set');
+}
+if (!process.env.CLAUDE_API_KEY) {
+    console.error('FATAL: CLAUDE_API_KEY environment variable is not set');
 }
 
-// Prisma singleton for serverless
+// Prisma singleton for serverless with proper error handling
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-const prisma = globalForPrisma.prisma || new PrismaClient({
-    errorFormat: 'pretty',
-});
+let prisma: PrismaClient;
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+if (globalForPrisma.prisma) {
+    prisma = globalForPrisma.prisma;
+} else {
+    prisma = new PrismaClient({
+        errorFormat: 'pretty',
+        log: ['error', 'warn'],
+    });
+    if (process.env.NODE_ENV !== 'production') {
+        globalForPrisma.prisma = prisma;
+    }
+}
 
 // Initialize Claude
 const anthropic = new Anthropic({
@@ -112,14 +120,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error) {
         console.error('Chat error:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-        
+
         // Check if it's a database connection error
-        if (errorMessage.includes('Can\'t reach database server')) {
-            return res.status(503).json({ 
-                error: 'Database connection failed. Please check DATABASE_URL environment variable in Vercel.' 
+        if (errorMessage.includes('Can\'t reach database server') || errorMessage.includes('database')) {
+            console.error('Database connection details:', {
+                hasDATABASE_URL: !!process.env.DATABASE_URL,
+                databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET'
+            });
+            return res.status(503).json({
+                error: 'Database connection failed. Ensure DATABASE_URL is set correctly in Vercel environment variables.'
             });
         }
-        
+
         return res.status(500).json({
             error: errorMessage
         });
