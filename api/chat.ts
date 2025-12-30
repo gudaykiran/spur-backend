@@ -3,15 +3,19 @@ import { z } from 'zod';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
 
+// Validate required environment variables
+const requiredEnvVars = ['DATABASE_URL', 'CLAUDE_API_KEY'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`Missing required environment variable: ${envVar}`);
+    }
+}
+
 // Prisma singleton for serverless
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
 const prisma = globalForPrisma.prisma || new PrismaClient({
-    datasources: {
-        db: {
-            url: process.env.DATABASE_URL
-        }
-    }
+    errorFormat: 'pretty',
 });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
@@ -77,7 +81,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
         // Generate AI response
-        const conversationHistory = messages.map(m => ({
+        const conversationHistory = messages.map((m: typeof messages[number]) => ({
             role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
             content: m.text
         }));
@@ -107,8 +111,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     } catch (error) {
         console.error('Chat error:', error);
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+        
+        // Check if it's a database connection error
+        if (errorMessage.includes('Can\'t reach database server')) {
+            return res.status(503).json({ 
+                error: 'Database connection failed. Please check DATABASE_URL environment variable in Vercel.' 
+            });
+        }
+        
         return res.status(500).json({
-            error: error instanceof Error ? error.message : 'An unexpected error occurred'
+            error: errorMessage
         });
     }
 }
