@@ -1,7 +1,25 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { ChatMessageSchema } from '../src/validation/chat.schema.js';
-import { handleChatMessage } from '../src/services/chatService.js';
-import { handleError } from '../src/utils/errors.js';
+import dotenv from 'dotenv';
+import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import Anthropic from '@anthropic-ai/sdk';
+import { PrismaClient } from '@prisma/client';
+
+// Load environment variables
+dotenv.config();
+
+// Initialize Prisma
+const prisma = new PrismaClient();
+
+// Initialize Claude
+const anthropic = new Anthropic({
+    apiKey: process.env.CLAUDE_API_KEY,
+});
+
+const ChatMessageSchema = z.object({
+    message: z.string().min(1),
+    sessionId: z.string().optional()
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     // CORS headers
@@ -19,10 +37,73 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const body = ChatMessageSchema.parse(req.body);
-        const result = await handleChatMessage(body.message, body.sessionId);
-        return res.status(200).json(result);
+        
+        // Create or retrieve conversation
+        let conversationId: string;
+        
+        if (!body.sessionId) {
+            const conversation = await prisma.conversation.create({ data: {} });
+            conversationId = conversation.id;
+        } else {
+            conversationId = body.sessionId;
+            const exists = await prisma.conversation.findUnique({
+                where: { id: conversationId }
+            });
+            if (!exists) {
+                const conversation = await prisma.conversation.create({ data: {} });
+                conversationId = conversation.id;
+            }
+        }
+
+        // Save user message
+        await prisma.message.create({
+            data: {
+                conversationId,
+                sender: 'user',
+                text: body.message
+            }
+        });
+
+        // Get conversation history
+        const messages = await prisma.message.findMany({
+            where: { conversationId },
+            orderBy: { createdAt: 'asc' },
+            take: 20
+        });
+
+        // Generate AI response
+        const conversationHistory = messages.map(m => ({
+            role: m.sender === 'user' ? 'user' as const : 'assistant' as const,
+            content: m.text
+        }));
+
+        const response = await anthropic.messages.create({
+            model: 'claude-3-5-sonnet-20241022',
+            max_tokens: 1024,
+            messages: conversationHistory
+        });
+
+        const aiReply = response.content[0].type === 'text' 
+            ? response.content[0].text 
+            : 'I apologize, but I could not generate a response.';
+
+        // Save AI response
+        await prisma.message.create({
+            data: {
+                conversationId,
+                sender: 'ai',
+                text: aiReply
+            }
+        });
+
+        return res.status(200).json({
+            reply: aiReply,
+            sessionId: conversationId
+        });
     } catch (error) {
-        const { statusCode, message } = handleError(error);
-        return res.status(statusCode).json({ error: message });
+        console.error('Chat error:', error);
+        return res.status(500).json({ 
+            error: error instanceof Error ? error.message : 'An unexpected error occurred'
+        });
     }
 }

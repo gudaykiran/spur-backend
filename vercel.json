@@ -1,20 +1,23 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/**/*.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/health",
-      "dest": "/api/health.ts"
-    },
-    {
-      "src": "/api/chat",
-      "dest": "/api/chat.ts",
-      "methods": ["POST", "OPTIONS"]
-    }
-  ]
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/**/*.ts",
+            "use": "@vercel/node"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/health",
+            "dest": "/api/health.ts"
+        },
+        {
+            "src": "/api/chat",
+            "dest": "/api/chat.ts",
+            "methods": [
+                "POST",
+                "OPTIONS"
+            ]
+        }
+    ]
 }
