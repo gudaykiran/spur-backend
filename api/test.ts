@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    
+
     const diagnostics = {
         timestamp: new Date().toISOString(),
         environment: {
@@ -19,7 +19,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
+        // Build DATABASE_URL with prepared statements disabled
+        const dbUrl = new URL(process.env.DATABASE_URL || '');
+        dbUrl.searchParams.set('prepared_statements', 'false');
+
         const prisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: dbUrl.toString()
+                }
+            },
             errorFormat: 'pretty',
             log: ['error', 'warn']
         });
@@ -27,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Test query
         await prisma.$queryRaw`SELECT 1`;
         diagnostics.prismaTest.status = 'success';
-        
+
         await prisma.$disconnect();
     } catch (error) {
         diagnostics.prismaTest.status = 'failed';
