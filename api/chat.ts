@@ -12,30 +12,20 @@ if (!process.env.CLAUDE_API_KEY) {
 }
 
 // Build DATABASE_URL with prepared statements disabled for serverless
-const dbUrl = new URL(process.env.DATABASE_URL || '');
-dbUrl.searchParams.set('prepared_statements', 'false');
-const databaseUrl = dbUrl.toString();
-
-// Prisma singleton for serverless with proper error handling
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
-
-let prisma: PrismaClient;
-
-if (globalForPrisma.prisma) {
-    prisma = globalForPrisma.prisma;
-} else {
-    prisma = new PrismaClient({
+function getPrismaClient() {
+    const dbUrl = new URL(process.env.DATABASE_URL || '');
+    // Remove if already exists and set fresh
+    dbUrl.searchParams.delete('prepared_statements');
+    dbUrl.searchParams.set('prepared_statements', 'false');
+    
+    return new PrismaClient({
         datasources: {
             db: {
-                url: databaseUrl
+                url: dbUrl.toString()
             }
         },
         errorFormat: 'pretty',
-        log: ['error', 'warn'],
     });
-    if (process.env.NODE_ENV !== 'production') {
-        globalForPrisma.prisma = prisma;
-    }
 }
 
 // Initialize Claude
@@ -62,16 +52,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
+    // Create fresh Prisma client for this request
+    const prisma = getPrismaClient();
+
     try {
         const body = ChatMessageSchema.parse(req.body);
-
-        // Test database connection first
-        try {
-            await prisma.$queryRaw`SELECT 1`;
-        } catch (dbError) {
-            console.error('Database connection test failed:', dbError);
-            throw new Error(`Database unreachable: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
-        }
 
         // Create or retrieve conversation
         let conversationId: string;
@@ -138,20 +123,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } catch (error) {
         console.error('Chat error:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-
-        // Check if it's a database connection error
-        if (errorMessage.includes('Can\'t reach database server') || errorMessage.includes('database')) {
-            console.error('Database connection details:', {
-                hasDATABASE_URL: !!process.env.DATABASE_URL,
-                databaseUrl: process.env.DATABASE_URL ? 'SET' : 'NOT SET'
-            });
-            return res.status(503).json({
-                error: 'Database connection failed. Ensure DATABASE_URL is set correctly in Vercel environment variables.'
-            });
-        }
-
-        return res.status(500).json({
-            error: errorMessage
-        });
+        return res.status(500).json({ error: errorMessage });
+    } finally {
+        await prisma.$disconnect();
     }
 }

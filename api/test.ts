@@ -21,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         // Build DATABASE_URL with prepared statements disabled
         const dbUrl = new URL(process.env.DATABASE_URL || '');
+        dbUrl.searchParams.delete('prepared_statements');
         dbUrl.searchParams.set('prepared_statements', 'false');
 
         const prisma = new PrismaClient({
@@ -29,8 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     url: dbUrl.toString()
                 }
             },
-            errorFormat: 'pretty',
-            log: ['error', 'warn']
+            errorFormat: 'pretty'
         });
 
         // Test query
