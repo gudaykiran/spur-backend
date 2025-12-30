@@ -11,23 +11,39 @@ if (!process.env.CLAUDE_API_KEY) {
     console.error('FATAL: CLAUDE_API_KEY environment variable is not set');
 }
 
-// Build DATABASE_URL with connection pooling parameters for serverless
+// Build DATABASE_URL with comprehensive connection pooling configuration
 function getPrismaClient() {
-    const dbUrl = new URL(process.env.DATABASE_URL || '');
+    let dbUrl = new URL(process.env.DATABASE_URL || '');
 
-    // Clear all pooling-related parameters and set them fresh
-    dbUrl.searchParams.delete('prepared_statements');
-    dbUrl.searchParams.delete('statement_cache_size');
-    dbUrl.searchParams.delete('pgbouncer');
+    console.log('🔗 Original connection:', {
+        hostname: dbUrl.hostname,
+        port: dbUrl.port,
+        isPooler: dbUrl.hostname.includes('.pooler.supabase.com')
+    });
 
-    // Disable all prepared statement caching for PgBouncer compatibility
+    // Clear all existing parameters
+    Array.from(dbUrl.searchParams.keys()).forEach(key => {
+        dbUrl.searchParams.delete(key);
+    });
+
+    // Set comprehensive pooling parameters
     dbUrl.searchParams.set('prepared_statements', 'false');
     dbUrl.searchParams.set('statement_cache_size', '0');
+    dbUrl.searchParams.set('pgbouncer', 'true');
+
+    // SSL mode for security
+    dbUrl.searchParams.set('sslmode', 'require');
+
+    // Connection timeout
+    dbUrl.searchParams.set('connect_timeout', '10');
+
+    const finalUrl = dbUrl.toString();
+    console.log('✅ Prisma connection URL configured with pooling parameters');
 
     return new PrismaClient({
         datasources: {
             db: {
-                url: dbUrl.toString()
+                url: finalUrl
             }
         },
         errorFormat: 'pretty',
@@ -127,8 +143,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             sessionId: conversationId
         });
     } catch (error) {
-        console.error('Chat error:', error);
+        console.error('❌ Chat error:', error);
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+
+        // Better error messages for common issues
+        if (errorMessage.includes('prepared statement')) {
+            return res.status(500).json({
+                error: 'Database pooling error - prepared statements conflict. This should not occur with current configuration.'
+            });
+        }
+
+        if (errorMessage.includes('CLAUDE_API_KEY')) {
+            return res.status(500).json({
+                error: 'Claude API key not configured'
+            });
+        }
+
+        if (errorMessage.includes('Can\'t reach database')) {
+            return res.status(503).json({
+                error: 'Database unavailable - check DATABASE_URL in Vercel environment variables'
+            });
+        }
+
         return res.status(500).json({ error: errorMessage });
     } finally {
         await prisma.$disconnect();

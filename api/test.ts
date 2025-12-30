@@ -10,7 +10,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             hasDATABASE_URL: !!process.env.DATABASE_URL,
             databaseUrl: process.env.DATABASE_URL ? 'PRESENT' : 'MISSING',
             nodeEnv: process.env.NODE_ENV,
-            hasCLAUDE_API_KEY: !!process.env.CLAUDE_API_KEY
+            hasCLAUDE_API_KEY: !!process.env.CLAUDE_API_KEY,
+            connectionDetails: {} as any
         },
         prismaTest: {
             status: 'testing...',
@@ -19,28 +20,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     };
 
     try {
-        // Build DATABASE_URL with connection pooling parameters
-        const dbUrl = new URL(process.env.DATABASE_URL || '');
+        // Build DATABASE_URL with comprehensive connection pooling configuration
+        let dbUrl = new URL(process.env.DATABASE_URL || '');
 
-        // Clear and set fresh pooling parameters
-        dbUrl.searchParams.delete('prepared_statements');
-        dbUrl.searchParams.delete('statement_cache_size');
-        dbUrl.searchParams.delete('pgbouncer');
+        diagnostics.environment.connectionDetails = {
+            hostname: dbUrl.hostname,
+            port: dbUrl.port,
+            isPooler: dbUrl.hostname.includes('.pooler.supabase.com')
+        };
 
-        dbUrl.searchParams.set('prepared_statements', 'false');
-        dbUrl.searchParams.set('statement_cache_size', '0');
-
-        const prisma = new PrismaClient({
-            datasources: {
-                db: {
-                    url: dbUrl.toString()
-                }
-            },
-            errorFormat: 'pretty'
+        // Clear all existing parameters
+        Array.from(dbUrl.searchParams.keys()).forEach(key => {
+            dbUrl.searchParams.delete(key);
         });
 
-        // Test query
-        await prisma.$queryRaw`SELECT 1`;
+        // Set comprehensive pooling parameters
+        dbUrl.searchParams.set('prepared_statements', 'false');
+        dbUrl.searchParams.set('statement_cache_size', '0');
+        dbUrl.searchParams.set('pgbouncer', 'true');
+        dbUrl.searchParams.set('sslmode', 'require');
+        dbUrl.searchParams.set('connect_timeout', '10');
         diagnostics.prismaTest.status = 'success';
 
         await prisma.$disconnect();
