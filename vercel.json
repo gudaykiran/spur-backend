@@ -12,11 +12,22 @@
             "dest": "/api/health.ts"
         },
         {
+            "src": "/test",
+            "dest": "/api/test.ts"
+        },
+        {
             "src": "/api/chat",
             "dest": "/api/chat.ts",
             "methods": [
                 "POST",
                 "OPTIONS"
+            ]
+        },
+        {
+            "src": "/api/migrate",
+            "dest": "/api/migrate.ts",
+            "methods": [
+                "POST"
             ]
         }
     ]

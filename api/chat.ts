@@ -55,6 +55,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const body = ChatMessageSchema.parse(req.body);
 
+        // Test database connection first
+        try {
+            await prisma.$queryRaw`SELECT 1`;
+        } catch (dbError) {
+            console.error('Database connection test failed:', dbError);
+            throw new Error(`Database unreachable: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+        }
+
         // Create or retrieve conversation
         let conversationId: string;
 
