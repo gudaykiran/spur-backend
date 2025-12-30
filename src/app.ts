@@ -46,7 +46,14 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Routes
-app.use('/api/chat', chatRouter);
+try {
+    app.use('/api/chat', chatRouter);
+} catch (err) {
+    console.error('Error mounting chat router:', err);
+    app.use('/api/chat', (req: Request, res: Response) => {
+        res.status(503).json({ error: 'Chat service unavailable' });
+    });
+}
 
 // 404 handler
 app.use((req: Request, res: Response) => {

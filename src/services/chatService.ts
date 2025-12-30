@@ -16,18 +16,19 @@ export async function handleChatMessage(
     messageText: string,
     sessionId?: string
 ): Promise<{ reply: string; sessionId: string }> {
-    // Create or retrieve conversation
-    let conversationId: string;
+    try {
+        // Create or retrieve conversation
+        let conversationId: string;
 
-    if (!sessionId) {
-        // Create new conversation
-        console.log('Creating new conversation');
-        const conversation = await prisma.conversation.create({
-            data: {}
-        });
-        conversationId = conversation.id;
-        console.log('New conversation created:', conversationId);
-    } else {
+        if (!sessionId) {
+            // Create new conversation
+            console.log('Creating new conversation');
+            const conversation = await prisma.conversation.create({
+                data: {}
+            });
+            conversationId = conversation.id;
+            console.log('New conversation created:', conversationId);
+        } else {
         // Verify conversation exists, if not create a new one
         console.log('Checking if conversation exists:', sessionId);
         const conversation = await prisma.conversation.findUnique({
@@ -88,6 +89,10 @@ export async function handleChatMessage(
         reply: aiReply,
         sessionId: conversationId
     };
+    } catch (error) {
+        console.error('Error in handleChatMessage:', error);
+        throw error;
+    }
 }
 
 /**
