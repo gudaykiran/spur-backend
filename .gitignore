@@ -4,6 +4,8 @@
 .env.*.local
 .env.production
 .env.production.local
+.env.railway
+.env.vercel
 
 # Dependencies
 node_modules/
