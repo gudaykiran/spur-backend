@@ -2,9 +2,9 @@
  * Server entry point
  */
 import dotenv from 'dotenv';
-import app from './app';
-import { prisma } from './db/prisma';
-import { initializeCache, disconnectCache } from './services/cacheService';
+import app from './app.js';
+import { prisma } from './db/prisma.js';
+import { initializeCache, disconnectCache } from './services/cacheService.js';
 
 // Load environment variables
 dotenv.config();

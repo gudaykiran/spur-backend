@@ -2,9 +2,9 @@
  * Chat Routes
  */
 import { Router, Request, Response } from 'express';
-import { ChatMessageSchema, ChatHistoryQuerySchema } from '../validation/chat.schema';
-import { handleChatMessage, getChatHistory } from '../services/chatService';
-import { AppError, handleError } from '../utils/errors';
+import { ChatMessageSchema, ChatHistoryQuerySchema } from '../validation/chat.schema.js';
+import { handleChatMessage, getChatHistory } from '../services/chatService.js';
+import { AppError, handleError } from '../utils/errors.js';
 
 const router = Router();
 

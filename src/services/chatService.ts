@@ -2,10 +2,10 @@
  * Chat Service - Business logic for chat operations
  */
 import { v4 as uuidv4 } from 'uuid';
-import { prisma } from '../db/prisma';
-import { generateReply } from './llmService';
-import { cacheHistory, getCachedHistory, getCacheKey, deleteCache } from './cacheService';
-import { AppError } from '../utils/errors';
+import { prisma } from '../db/prisma.js';
+import { generateReply } from './llmService.js';
+import { cacheHistory, getCachedHistory, getCacheKey, deleteCache } from './cacheService.js';
+import { AppError } from '../utils/errors.js';
 
 const HISTORY_LIMIT = 10; // Number of past messages to include in LLM context
 

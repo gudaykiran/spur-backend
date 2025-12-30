@@ -4,7 +4,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import type { CorsOptions } from 'cors';
-import chatRouter from './routes/chat';
+import chatRouter from './routes/chat.js';
 
 const app = express();
 
