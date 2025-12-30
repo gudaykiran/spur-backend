@@ -17,10 +17,10 @@ router.get('/test', (req: Request, res: Response) => {
 });
 
 /**
- * POST /chat/message
+ * POST /api/chat
  * Send a message and get AI response
  */
-router.post('/message', async (req: Request, res: Response) => {
+router.post('/', async (req: Request, res: Response) => {
     try {
         const body = ChatMessageSchema.parse(req.body);
 

@@ -23,7 +23,7 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // Routes
-app.use('/chat', chatRouter);
+app.use('/api/chat', chatRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
