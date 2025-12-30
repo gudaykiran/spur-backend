@@ -40,6 +40,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         dbUrl.searchParams.set('pgbouncer', 'true');
         dbUrl.searchParams.set('sslmode', 'require');
         dbUrl.searchParams.set('connect_timeout', '10');
+
+        const prisma = new PrismaClient({
+            datasources: {
+                db: {
+                    url: dbUrl.toString()
+                }
+            },
+            errorFormat: 'pretty'
+        });
+
+        // Test query
+        await prisma.$queryRaw`SELECT 1`;
         diagnostics.prismaTest.status = 'success';
 
         await prisma.$disconnect();
