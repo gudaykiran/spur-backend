@@ -1,12 +1,6 @@
 {
     "version": 2,
     "buildCommand": "npm run build",
-    "env": {
-        "DATABASE_URL": "@database_url",
-        "CLAUDE_API_KEY": "@claude_api_key",
-        "REDIS_URL": "@redis_url",
-        "NODE_ENV": "production"
-    },
     "functions": {
         "src/server.ts": {
             "memory": 1024,
