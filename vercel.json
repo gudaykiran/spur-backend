@@ -2,18 +2,10 @@
     "version": 2,
     "buildCommand": "npm run build",
     "env": {
-        "DATABASE_URL": {
-            "description": "PostgreSQL database connection string"
-        },
-        "CLAUDE_API_KEY": {
-            "description": "Anthropic Claude API key"
-        },
-        "REDIS_URL": {
-            "description": "Redis connection URL (optional)"
-        },
-        "NODE_ENV": {
-            "default": "production"
-        }
+        "DATABASE_URL": "@database_url",
+        "CLAUDE_API_KEY": "@claude_api_key",
+        "REDIS_URL": "@redis_url",
+        "NODE_ENV": "production"
     },
     "functions": {
         "src/server.ts": {
