@@ -11,6 +11,11 @@ if (!process.env.CLAUDE_API_KEY) {
     console.error('FATAL: CLAUDE_API_KEY environment variable is not set');
 }
 
+// Build DATABASE_URL with prepared statements disabled for serverless
+const dbUrl = new URL(process.env.DATABASE_URL || '');
+dbUrl.searchParams.set('prepared_statements', 'false');
+const databaseUrl = dbUrl.toString();
+
 // Prisma singleton for serverless with proper error handling
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
@@ -20,6 +25,11 @@ if (globalForPrisma.prisma) {
     prisma = globalForPrisma.prisma;
 } else {
     prisma = new PrismaClient({
+        datasources: {
+            db: {
+                url: databaseUrl
+            }
+        },
         errorFormat: 'pretty',
         log: ['error', 'warn'],
     });
