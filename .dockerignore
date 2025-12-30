@@ -1,0 +1,55 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Dependencies (will be reinstalled)
+node_modules/
+
+# Build artifacts
+dist/
+build/
+.svelte-kit/
+
+# Environment (use build args)
+.env
+.env.local
+.env.*.local
+
+# Documentation
+README.md
+LICENSE
+*.md
+
+# IDE
+.vscode/
+.idea/
+.eslintrc.*
+.prettierrc.*
+tsconfig.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Testing
+coverage/
+.nyc_output/
+jest.config.js
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Misc
+.editorconfig
+.dockerignore
+docker-compose*.yml
+Dockerfile
+Makefile
