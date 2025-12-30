@@ -1,15 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import dotenv from 'dotenv';
 import { z } from 'zod';
-import { v4 as uuidv4 } from 'uuid';
 import Anthropic from '@anthropic-ai/sdk';
 import { PrismaClient } from '@prisma/client';
 
-// Load environment variables
-dotenv.config();
+// Prisma singleton for serverless
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
-// Initialize Prisma
-const prisma = new PrismaClient();
+const prisma = globalForPrisma.prisma || new PrismaClient({
+    datasources: {
+        db: {
+            url: process.env.DATABASE_URL
+        }
+    }
+});
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
 
 // Initialize Claude
 const anthropic = new Anthropic({
@@ -37,10 +42,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const body = ChatMessageSchema.parse(req.body);
-        
+
         // Create or retrieve conversation
         let conversationId: string;
-        
+
         if (!body.sessionId) {
             const conversation = await prisma.conversation.create({ data: {} });
             conversationId = conversation.id;
@@ -83,8 +88,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             messages: conversationHistory
         });
 
-        const aiReply = response.content[0].type === 'text' 
-            ? response.content[0].text 
+        const aiReply = response.content[0].type === 'text'
+            ? response.content[0].text
             : 'I apologize, but I could not generate a response.';
 
         // Save AI response
@@ -102,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     } catch (error) {
         console.error('Chat error:', error);
-        return res.status(500).json({ 
+        return res.status(500).json({
             error: error instanceof Error ? error.message : 'An unexpected error occurred'
         });
     }
