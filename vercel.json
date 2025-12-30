@@ -9,6 +9,29 @@
             }
         }
     ],
+    "headers": [
+        {
+            "source": "/api/(.*)",
+            "headers": [
+                {
+                    "key": "Access-Control-Allow-Origin",
+                    "value": "*"
+                },
+                {
+                    "key": "Access-Control-Allow-Methods",
+                    "value": "GET, POST, PUT, DELETE, OPTIONS"
+                },
+                {
+                    "key": "Access-Control-Allow-Headers",
+                    "value": "Content-Type, Authorization, X-Requested-With, Accept"
+                },
+                {
+                    "key": "Access-Control-Max-Age",
+                    "value": "86400"
+                }
+            ]
+        }
+    ],
     "routes": [
         {
             "src": "^/health/?$",
@@ -20,18 +43,11 @@
         },
         {
             "src": "^/api/chat/?$",
-            "dest": "/api/chat.ts",
-            "methods": [
-                "POST",
-                "OPTIONS"
-            ]
+            "dest": "/api/chat.ts"
         },
         {
             "src": "^/api/migrate/?$",
-            "dest": "/api/migrate.ts",
-            "methods": [
-                "POST"
-            ]
+            "dest": "/api/migrate.ts"
         }
     ]
 }
